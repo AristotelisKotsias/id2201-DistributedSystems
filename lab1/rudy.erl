@@ -55,4 +55,5 @@ gen_tcp:close(Client).
 %reply(Request): this is where we decide what to reply, how to turn
 %the reply into a well formed HTTP reply.
 reply({{get, URI, _}, _, _}) ->
+    timer:sleep(40),
     http:ok(URI).
