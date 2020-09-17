@@ -1,11 +1,8 @@
 -module(routy).
--export([start/1, start/2, stop/1, init/1, prettyPrint/1]).
+-export([start/2, stop/1, init/1]).
 
 start(Reg, Name) ->
    register(Reg, spawn(fun() -> init(Name) end)).
-
-start(Name) ->
-  start(Name, Name).
 
 stop(Node) ->
     Node ! stop,
@@ -32,7 +29,7 @@ router(Name, N, Hist, Intf, Table, Map) ->
             router(Name, N, Hist, Intf1, Table, Map);
         {'DOWN', Ref, process, _, _} ->
             {ok, Down} = intf:name(Ref, Intf),
-            io:format("~w: exit recived from ~w~n", [Name, Down]),
+            io:format("~w: exit received from ~w~n", [Name, Down]),
             Intf1 = intf:remove(Down, Intf),
             router(Name, N, Hist, Intf1, Table, Map);       
         {links, Node, R, Links} ->
@@ -78,19 +75,3 @@ router(Name, N, Hist, Intf, Table, Map) ->
         stop ->
             ok
     end.
-
-prettyPrint(Pid) ->
-  Pid ! {status, self()},
-  receive
-    {status, {Name, N, Hist, Intf, Table, Map}} ->
-      io:format("Status: Name, N, Hist, Intf, Table, Map ~n"),
-      io:format("Name: ~w~n", [Name]),
-      io:format("N: ~w~n", [N]),
-      io:format("Hist: ~w~n", [Hist]),
-      io:format("Intf: ~w~n", [Intf]),
-      io:format("Table: ~w~n", [Table]),
-      io:format("Map: ~w~n", [Map]),
-      ok;
-    true ->
-      io:format("  got something: ~n")
-  end.

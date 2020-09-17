@@ -1,45 +1,48 @@
 -module(test).
--author("justi").
-
-%% API
--compile(export_all).
+-export([start/0]).
 
 start() ->
-  io:format("Start cities... Stockholm, Umeå, Luleå ~n"),
-  routy:start(stockholm),
-  routy:start(lund),
-  routy:start(uppsala),
-  routy:start(goteborg),
-  routy:start(malmo),
+    routy:start(stockholm, stockholm),
+    routy:start(malmo, malmo),
+    routy:start(uppsala, uppsala),
+    routy:start(kiruna, kiruna),
+    routy:start(gothemborg, gothemborg),
 
-  stockholm ! {add, lund, {lund, node()}},
-  stockholm ! {add, malmo, {malmo, node()}},
-  lund ! {add, uppsala, {uppsala, node()}},
-  uppsala ! {add, stockholm, {stockholm, node()}},
-  goteborg ! {add, uppsala, {uppsala, node()}},
-  malmo ! {add, goteborg, {goteborg, node()}},
-  stockholm ! broadcast,
-  timer:sleep(1000),
-  lund ! broadcast,
-  timer:sleep(1000),
-  uppsala ! broadcast,
-  timer:sleep(1000),
-  malmo ! broadcast,
-  timer:sleep(1000),
-  goteborg ! broadcast,
-  timer:sleep(1000),
-  stockholm ! update,
-  timer:sleep(1000),
-  lund ! update,
-  timer:sleep(1000),
-  uppsala ! update,
-  timer:sleep(1000),
-  malmo ! update,
-  timer:sleep(1000),
-  goteborg ! update,
-  timer:sleep(1000).
+    stockholm ! {add, uppsala, {uppsala, 'sweden@localhost'}},
+    stockholm ! {add, malmo, {malmo, 'sweden@localhost'}},
+    uppsala ! {add, kiruna, {kiruna, 'sweden@localhost'}},
+    malmo ! {add, gothemborg, {gothemborg, 'sweden@localhost'}},
+    gothemborg ! {add, kiruna, {kiruna, 'sweden@localhost'}},
+    kiruna ! {add, stockholm, {stockholm, 'sweden@localhost'}},
+    timer:sleep(1000),
 
-stop() ->
-  stockholm ! stop,
-  umea ! stop,
-  lulea ! stop.
+    stockholm ! broadcast, 
+    malmo ! broadcast,
+    uppsala ! broadcast,
+    kiruna ! broadcast,
+    gothemborg ! broadcast,
+    timer:sleep(1000),
+
+    stockholm ! update,
+    malmo ! update,
+    uppsala ! update,
+    kiruna ! update,
+    gothemborg ! update,
+    timer:sleep(1000),
+
+    stockholm ! {send, stockholm, 'Hej'},
+    timer:sleep(1000),
+
+    stockholm ! {send, kiruna, 'Hej'},
+    timer:sleep(1000),
+
+    routy:stop(uppsala),
+    timer:sleep(1000),
+    stockholm ! update,
+    stockholm ! {send, kiruna, 'Hej'},
+    timer:sleep(1000),
+
+    routy:stop(gothemborg),
+    timer:sleep(1000),
+    malmo ! update,
+    stockholm ! {send, kiruna, 'Hej'}.
