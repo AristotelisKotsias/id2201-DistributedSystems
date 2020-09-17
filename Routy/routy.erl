@@ -1,8 +1,11 @@
 -module(routy).
--export([start/2, stop/1, init/1]).
+-export([start/1, start/2, stop/1, init/1, prettyPrint/1]).
 
 start(Reg, Name) ->
-    register(Reg, spawn(fun() -> init(Name) end)).
+   register(Reg, spawn(fun() -> init(Name) end)).
+
+start(Name) ->
+  start(Name, Name).
 
 stop(Node) ->
     Node ! stop,
@@ -21,18 +24,15 @@ router(Name, N, Hist, Intf, Table, Map) ->
         {add, Node, Pid} ->
             Ref = erlang:monitor(process,Pid),
             Intf1 = intf:add(Node, Ref, Pid, Intf),
-            prettyprint( Name, "added interface", [{node,Node},{pid,Pid},{ref,Ref}]),
             router(Name, N, Hist, Intf1, Table, Map);
         {remove, Node} ->
             {ok, Ref} = intf:ref(Node, Intf),
             erlang:demonitor(Ref),
             Intf1 = intf:remove(Node, Intf),
-            prettyprint( Name, "removed interface", [{node,Node},{ref,Ref}]),
             router(Name, N, Hist, Intf1, Table, Map);
         {'DOWN', Ref, process, _, _} ->
             {ok, Down} = intf:name(Ref, Intf),
             io:format("~w: exit recived from ~w~n", [Name, Down]),
-            prettyprint( Name, "exit recieved, removing intf.", [{node,Down}]),
             Intf1 = intf:remove(Down, Intf),
             router(Name, N, Hist, Intf1, Table, Map);       
         {links, Node, R, Links} ->
@@ -46,25 +46,21 @@ router(Name, N, Hist, Intf, Table, Map) ->
             end;
         {status, From} ->
             From ! {status, {Name, N, Hist, Intf, Table, Map}},
-            prettyprint( Name, "status request", [{from,From},{n,N},{hist,Hist},{intf,Intf},
-			{table,Table},{map,Map}]),
             router(Name, N, Hist, Intf, Table, Map);
         {route, Name, From, Message} ->
-            prettyprint( Name, "received message", [{from,From},{str,message,Message}]),
+            io:format("~w: received message ~w~n from: ~w~n", [Name, Message, From]),
             router(Name, N, Hist, Intf, Table, Map);
         {route, To, From, Message} ->
-            prettyprint( Name, "routing message",[{from,From},{to,To},{Message},{table,Table}]),
+            io:format("~w: routing message (~w)", [Name, Message]),
             case dijkstra:route(To, Table) of
                 {ok, Gw} ->
                     case intf:lookup(Gw, Intf) of
                         {ok, Pid} ->
-                            Pid ! {route, To, From, Message},
-                            prettyprint( Name, "routed to gateway", [{gw, Gw},{str,m, Message}] );
+                            Pid ! {route, To, From, Message};
                          notfound ->
                             ok
                     end;
                 notfound ->
-                    prettyprint( Name, "route not found for message",[{m,Message}]),
                     ok
             end,
             router(Name, N, Hist, Intf, Table, Map);
@@ -73,26 +69,28 @@ router(Name, N, Hist, Intf, Table, Map) ->
             router(Name, N, Hist, Intf, Table, Map);
         update ->
             Table1 = dijkstra:table(intf:list(Intf), Map),
-            prettyprint( Name, "update table", [{newtble,Table1}]),
             router(Name, N, Hist, Intf, Table1, Map);
         broadcast ->
             Message = {links, Name, N, intf:list(Intf)},
-            prettyprint(Name,"broadcast interfaces",[{n,N}]),
+
             intf:broadcast(Message, Intf),
             router(Name, N+1, Hist, Intf, Table, Map);
         stop ->
             ok
     end.
 
-prettyprint(Name, Message, List) ->
-	prettyprint([{str,Name,Message}|List]).
-prettyprint( [] ) -> [];
-prettyprint( [{str,N,V}|T] ) ->
-	io:format(" ~w: ~s~n", [N,V]),
-	prettyprint(T);
-prettyprint([{N,V}|T]) ->
-	io:format("    ~w: ~w~n", [N,V]),
-	prettyprint(T);
-prettyprint([H|T]) ->
-	io:format("    ~w~n", [H]),
-	prettyprint(T).
+prettyPrint(Pid) ->
+  Pid ! {status, self()},
+  receive
+    {status, {Name, N, Hist, Intf, Table, Map}} ->
+      io:format("Status: Name, N, Hist, Intf, Table, Map ~n"),
+      io:format("Name: ~w~n", [Name]),
+      io:format("N: ~w~n", [N]),
+      io:format("Hist: ~w~n", [Hist]),
+      io:format("Intf: ~w~n", [Intf]),
+      io:format("Table: ~w~n", [Table]),
+      io:format("Map: ~w~n", [Map]),
+      ok;
+    true ->
+      io:format("  got something: ~n")
+  end.
