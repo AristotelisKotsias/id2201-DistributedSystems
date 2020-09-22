@@ -1,6 +1,6 @@
 -module(test).
 -export([start/0]).
-
+%erl -name sweden@localhost -setcookie routy -connect_all false
 start() ->
     routy:start(stockholm, stockholm),
     routy:start(malmo, malmo),
