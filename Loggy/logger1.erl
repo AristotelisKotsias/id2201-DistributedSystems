@@ -1,4 +1,4 @@
--module(logger).
+-module(logger1).
 -export([start/1, stop/1]).
 
 start(Nodes) ->

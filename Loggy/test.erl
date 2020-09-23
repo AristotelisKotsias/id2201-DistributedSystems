@@ -2,7 +2,7 @@
 -export([run/2]).
 
 run(Sleep, Jitter) ->
-    Log = logger:start([john, paul, ringo, george]),
+    Log = logger1:start([john, paul, ringo, george]),
     A = worker:start(john, Log, 13, Sleep, Jitter),
     B = worker:start(paul, Log, 23, Sleep, Jitter),
     C = worker:start(ringo, Log, 36, Sleep, Jitter),
@@ -12,7 +12,7 @@ run(Sleep, Jitter) ->
     worker:peers(C, [A, B, D]),
     worker:peers(D, [A, B, C]),
     timer:sleep(5000),
-    logger:stop(Log),
+    logger1:stop(Log),
     worker:stop(A),
     worker:stop(B),
     worker:stop(C),
