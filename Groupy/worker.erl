@@ -157,9 +157,3 @@ wait(Sleep) ->
 
 change_color(N, {R,G,B}) ->
     {G, B, ((R+N) rem 256)}.
-
-     
-
-
- 
-
